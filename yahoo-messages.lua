@@ -1,5 +1,4 @@
 
-
 local read_file = function(file)
   local f = io.open(file)
   local data = f:read("*all")
@@ -7,14 +6,39 @@ local read_file = function(file)
   return data
 end
 
+local escape_lua_pattern
+do
+  local matches =
+  {
+    ["^"] = "%^";
+    ["$"] = "%$";
+    ["("] = "%(";
+    [")"] = "%)";
+    ["%"] = "%%";
+    ["."] = "%.";
+    ["["] = "%[";
+    ["]"] = "%]";
+    ["*"] = "%*";
+    ["+"] = "%+";
+    ["-"] = "%-";
+    ["?"] = "%?";
+    ["\0"] = "%z";
+  }
+
+  escape_lua_pattern = function(s)
+    return (s:gsub(".", matches))
+  end
+end
+
 local url_count = 0
 
 wget.callbacks.get_urls = function(file, url, is_css, iri)
   local urls = {}
 
-  local base, board_num, thread_id, message_id = string.match(url, "^(http://messages%.yahoo%.com/.+)/threadview%?m=tm&bn=(%d+)&tid=(%d+)&mid=(-?%d+)&tof=8&frt=1")
+  local base, board_num, thread_id, message_id = string.match(url, "^(http://messages%.yahoo%.com/.+)/threadview%?m=tm&bn=([^&]+)&tid=(%d+)&mid=(-?%d+)&")
   if base then
     local html = read_file(file)
+    board_num = escape_lua_pattern(board_num)
 
     -- other messages on this page
     for u in string.gmatch(html, "class=\"syslink\" href=\"(http://messages%.yahoo%.com/[^\"]+/threadview%?m=tm&bn="..board_num.."&tid="..thread_id.."&mid=[^\"]+)\"") do
@@ -29,3 +53,4 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
   
   return urls
 end
+
