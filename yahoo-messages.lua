@@ -53,7 +53,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
   end
 
   -- messages in a thread
-  local base, board_num, thread_id, message_id = string.match(url, "^DISABLED(http://messages%.yahoo%.com/.+)/threadview%?m=tm&bn=([^&]+)&tid=(%d+)&mid=(-?%d+)&")
+  local base, board_num, thread_id, message_id = string.match(url, "^(http://messages%.yahoo%.com/.+)/threadview%?m=tm&bn=([^&]+)&tid=(%d+)&mid=(-?%d+)&")
   if base then
     local html = read_file(file)
     board_num = escape_lua_pattern(board_num)
