@@ -35,7 +35,25 @@ local url_count = 0
 wget.callbacks.get_urls = function(file, url, is_css, iri)
   local urls = {}
 
-  local base, board_num, thread_id, message_id = string.match(url, "^(http://messages%.yahoo%.com/.+)/threadview%?m=tm&bn=([^&]+)&tid=(%d+)&mid=(-?%d+)&")
+  -- threads on a board
+  local base, board_num = string.match(url, "^(http://messages%.yahoo%.com/.+)/forumview%?bn=([^&]+)")
+  if base then
+    local html = read_file(file)
+    board_num = escape_lua_pattern(board_num)
+
+    -- threads on this page
+    for u in string.gmatch(html, "class=\"syslink\" href=\"(http://messages%.yahoo%.com/[^\"]+/threadview%?m=tm&bn="..board_num.."&tid=%d+&mid=[^\"]+)\"") do
+      table.insert(urls, { url=u, link_expect_html=1 })
+    end
+
+    -- next, previous page
+    for u in string.gmatch(html, "href=\"(http://messages%.yahoo%.com/[^\"]+/forumview%?bn="..board_num.."[^\"]*)\"><span class=\"pagination\"") do
+      table.insert(urls, { url=u, link_expect_html=1 })
+    end
+  end
+
+  -- messages in a thread
+  local base, board_num, thread_id, message_id = string.match(url, "^DISABLED(http://messages%.yahoo%.com/.+)/threadview%?m=tm&bn=([^&]+)&tid=(%d+)&mid=(-?%d+)&")
   if base then
     local html = read_file(file)
     board_num = escape_lua_pattern(board_num)
