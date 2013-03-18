@@ -33,7 +33,15 @@ end
 local url_count = 0
 
 wget.callbacks.get_urls = function(file, url, is_css, iri)
+  -- progress message
+  url_count = url_count + 1
+  if url_count % 10 == 0 then
+    io.stdout:write("\r - Downloaded "..url_count.." URLs")
+    io.stdout:flush()
+  end
+
   local urls = {}
+  local urls_to_delegate = {}
 
   -- threads on a board
   local base, board_num = string.match(url, "^(http://messages%.yahoo%.com/.+)/forumview%?bn=([^&]+)")
@@ -42,8 +50,15 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     board_num = escape_lua_pattern(board_num)
 
     -- threads on this page
-    for u in string.gmatch(html, "class=\"syslink\" href=\"(http://messages%.yahoo%.com/[^\"]+/threadview%?m=tm&bn="..board_num.."&tid=%d+&mid=[^\"]+)\"") do
-      table.insert(urls, { url=u, link_expect_html=1 })
+    for tr in string.gmatch(html, "<tr>.-</tr>") do
+      local message_count = string.match(tr, "<td class=\"cell%-no%-highlight\" nowrap=\"true\">%s+(%d+)%s+</td>")
+      local thread_urls = ""
+      for u in string.gmatch(tr, "class=\"syslink\" href=\"(http://messages%.yahoo%.com/[^\"]+/threadview%?m=tm&bn="..board_num.."&tid=%d+&mid=[^\"]+)\"") do
+        thread_urls = thread_urls.." "..string.gsub(u, "%s", "%%20")
+      end
+      if message_count and #thread_urls > 0 then
+        table.insert(urls_to_delegate, message_count..thread_urls)
+      end
     end
 
     -- next, previous page
@@ -69,6 +84,30 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end
   end
   
+  if #urls_to_delegate > 0 then
+    local filename = os.getenv("DELEGATED_URLS_FILENAME")
+    if filename then
+      local f = io.open(filename, "a")
+      for i,url in ipairs(urls_to_delegate) do
+        f:write(url.."\n")
+      end
+      f:close()
+    end
+  end
+
   return urls
+end
+
+
+wget.callbacks.httploop_result = function(url, err, http_stat)
+  if http_stat.statcode == 999 then
+    -- try again
+    io.stdout:write("\nRate limited. Waiting for 300 seconds...\n")
+    io.stdout:flush()
+    os.execute("sleep 300")
+    return wget.actions.CONTINUE
+  else
+    return wget.actions.NOTHING
+  end
 end
 
