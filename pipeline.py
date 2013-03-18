@@ -102,7 +102,7 @@ USER_AGENT = "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/533.20
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = "20130318.01"
+VERSION = "20130318.02"
 
 
 ###########################################################################
@@ -224,6 +224,7 @@ pipeline = Pipeline(
       "--timeout", "60",
       "--tries", "40",
       "--waitretry", "5",
+      "--header", "Cookie: YMBP1=view=tm|ratingTView=1|ratingTot=1",
       "--lua-script", "yahoo-messages.lua",
       "--warc-file", ItemInterpolation("%(item_dir)s/%(warc_file_base)s"),
       "--warc-header", "operator: Archive Team",
