@@ -67,19 +67,31 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end
   end
 
-  -- messages in a thread
+  -- messages in a thread (thread view)
   local base, board_num, thread_id, message_id = string.match(url, "^(http://messages%.yahoo%.com/.+)/threadview%?m=tm&bn=([^&]+)&tid=(%d+)&mid=(-?%d+)&")
   if base then
     local html = read_file(file)
     board_num = escape_lua_pattern(board_num)
 
+    -- immediately go to the message list view
+    for u in string.gmatch(html, "href=\"(http://messages%.yahoo%.com/[^\"]+/threadview%?m=mm&bn="..board_num.."&tid="..thread_id.."&mid=[^\"]+)\">[^<]+Msg List") do
+      table.insert(urls, { url=u, link_expect_html=1 })
+    end
+  end
+
+  -- messages in a thread (message list view)
+  local base, board_num, thread_id, message_id = string.match(url, "^(http://messages%.yahoo%.com/.+)/threadview%?m=mm&bn=([^&]+)&tid=(%d+)&mid=(-?%d+)&")
+  if base then
+    local html = read_file(file)
+    board_num = escape_lua_pattern(board_num)
+
     -- other messages on this page
-    for u in string.gmatch(html, "class=\"syslink\" href=\"(http://messages%.yahoo%.com/[^\"]+/threadview%?m=tm&bn="..board_num.."&tid="..thread_id.."&mid=[^\"]+)\"") do
+    for u in string.gmatch(html, "class=\"syslink\" href=\"(http://messages%.yahoo%.com/[^\"]+/threadview%?m=mm&bn="..board_num.."&tid="..thread_id.."&mid=[^\"]+)\"") do
       table.insert(urls, { url=u, link_expect_html=1 })
     end
 
     -- next, previous page
-    for u in string.gmatch(html, "href=\"(http://messages%.yahoo%.com/[^\"]+/threadview%?m=tm&bn="..board_num.."&tid="..thread_id.."&mid=[^\"]+)\"><span class=\"pagination\"") do
+    for u in string.gmatch(html, "href=\"(http://messages%.yahoo%.com/[^\"]+/threadview%?m=mm&bn="..board_num.."&tid="..thread_id.."&mid=[^\"]+)\"><span class=\"pagination\"") do
       table.insert(urls, { url=u, link_expect_html=1 })
     end
   end
